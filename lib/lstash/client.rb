@@ -1,6 +1,7 @@
 require 'logger'
 require 'date'
 require 'hashie'
+require 'json'
 
 class NullLogger < Logger
   def initialize(*args); end
@@ -10,6 +11,10 @@ end
 module Lstash
 
   class Client
+
+    class Response < Hashie::Mash
+      disable_warnings
+    end
 
     class ConnectionError < StandardError; end
 
@@ -53,7 +58,7 @@ module Lstash
     private
 
     def count_messages(index, query)
-      result = Hashie::Mash.new @es_client.send(:count,
+      result = Response.new @es_client.send(:count,
         index: index,
         body:  query.filter
       )
@@ -66,12 +71,14 @@ module Lstash
       scroll_params = {}
       offset = 0
       method = :search
+
       while (messages.nil? || messages.count > 0) do
-        result = Hashie::Mash.new @es_client.send(method, {
+        raw_result = @es_client.send(method, {
           index:  index,
           scroll: '5m',
-          body:   query.search(offset, PER_PAGE),
+          body:   :search == method ? query.search(offset, PER_PAGE) :nil,
         }.merge(scroll_params))
+        result = Response.new raw_result
 
         messages = result.hits.hits
 
@@ -86,7 +93,7 @@ module Lstash
         method = :scroll
       end
       @logger.debug "grep index=#{index} from=#{query.from} to=#{query.to} count=#{offset}"
-      Hashie::Mash.new @es_client.clear_scroll(scroll_params)
+      Response.new @es_client.clear_scroll(scroll_params)
     end
 
     def debug_logger

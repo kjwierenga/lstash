@@ -9,7 +9,7 @@ module Lstash
     class FormatError < StandardError; end
     class QueryMissing < StandardError; end
 
-    LOGSTASH_PREFIX = 'logstash-'.freeze
+    LOGSTASH_PREFIX = 'cloudfront_sessions-'.freeze
     WILDCARD_QUERY  = '*'.freeze
 
     attr_accessor :from, :to
@@ -25,13 +25,13 @@ module Lstash
     end
 
     def index_name(date)
-      "#{LOGSTASH_PREFIX}#{date.strftime('%Y.%m.%d')}"
+      "#{LOGSTASH_PREFIX}#{date.strftime('%Y%m%d')}"
     end
 
     def search(from, size)
       {
         sort:   sort_order,
-        fields: %w(message),
+        _source: %w(clientip verb), #%w(message),
         query:  filter,
         from:   from,
         size:   size
@@ -40,8 +40,8 @@ module Lstash
 
     def filter
       {
-        filtered: {
-          query:  es_query,
+        bool: {
+          must:  es_query,
           filter: es_filter
         }
       }
@@ -94,21 +94,17 @@ module Lstash
 
     def sort_order
       # return results in order of ascending timestamp
-      [ { '@timestamp' => { order: 'asc' } } ]
+      [ { timestamp: { order: 'asc' } } ]
     end
 
     def es_query
-      {
-        bool: {
-          should: [
-            {
-              query_string: {
-                query: query_string
-              }
-            }
-          ]
+      [
+        {
+          query_string: {
+            query: query_string
+          }
         }
-      }
+      ]
     end
 
     def es_filter
@@ -116,7 +112,7 @@ module Lstash
         bool: {
           must: [
             range: {
-              '@timestamp' => {
+              'timestamp' => {
                 gte: to_msec(from),
                 lt:  to_msec(to)
               }

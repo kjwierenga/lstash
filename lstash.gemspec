@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "timecop"
 
   spec.add_dependency "typhoeus"
-  spec.add_dependency "elasticsearch", "~> 0.4"
+  spec.add_dependency "elasticsearch", "~> 7"
   spec.add_dependency "hashie"
   spec.add_dependency "thor"
 end
