@@ -31,7 +31,7 @@ module Lstash
     def search(from, size)
       {
         sort:   sort_order,
-        _source: %w(clientip verb), #%w(message),
+        _source: %w(clientip end_time verb request protocol response bytes referrer agent duration hls count), #%w(message),
         query:  filter,
         from:   from,
         size:   size
@@ -93,8 +93,8 @@ module Lstash
     end
 
     def sort_order
-      # return results in order of ascending timestamp
-      [ { timestamp: { order: 'asc' } } ]
+      # return results in order of ascending end_time
+      [ { end_time: { order: 'asc' } } ]
     end
 
     def es_query
@@ -112,7 +112,7 @@ module Lstash
         bool: {
           must: [
             range: {
-              'timestamp' => {
+              'end_time' => {
                 gte: to_msec(from),
                 lt:  to_msec(to)
               }
